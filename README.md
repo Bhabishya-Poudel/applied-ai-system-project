@@ -1,202 +1,234 @@
-# 🎵 Music Recommender Simulation
+# Music Recommender with RAG
 
-## Project Summary
+Describe the music you want and receive three recommendations with AI-generated
+explanations. Search a small catalog in everyday language and see why songs fit.
 
-This is a small music recommender. You give it a genre, a mood and a few numbers, like energy and acousticness. It scores all 18 songs in the catalog and shows the best matches, each with a reason. See the [model card](model_card.md) for details.
+## Original project
 
----
+This extends [Music Recommender Simulation](https://github.com/Bhabishya-Poudel/ai110-module3show-musicrecommendersimulation-starter)
+from **CodePath Module 3, Week 6**. The original project matched a listener's genre,
+mood, energy, and acoustic preferences to a local song catalog. It used weighted
+scores to return ranked songs with reasons.
 
-## How The System Works
+## Architecture
 
-- **Song features:** id, title, artist, genre, mood, energy, tempo_bpm, valence, danceability and acousticness. Scoring uses energy, valence, mood, acousticness and genre.
-- **UserProfile:** favorite genre, favorite mood, target energy, and whether they like acoustic music.
-- **Scoring:** each song gets a 0 to 1 score. Energy, valence and acousticness score `(1 - gap)²`, where gap is the distance from the user's target. Mood and genre add a bonus on an exact match. Weights: energy 0.35, valence 0.25, mood 0.20, acousticness 0.10, genre 0.10. In the output, closeness and the final score are shown as labels instead of raw numbers: **closest match** (0.95+), **closer match** (0.85+), **close match** (0.70+), **near match** (0.50+) and **distant match** (below 0.50).
-- **Choosing songs:** sort by score, keep songs scoring at least 0.5, and return the top k. If none qualify, return the closest songs with a "no strong match" note. About 1 time in 10, one slot becomes a random surprise pick.
+MiniLM embeddings and metadata checks find songs using the catalog and custom
+listening notes. Gemini explains the selected records, then the app validates
+the answer's format and song IDs.
 
-**Data flow: Input → Process → Output.**
-
-```
-INPUT                    PROCESS (the loop)                          OUTPUT
-─────                    ──────────────────                          ──────
-user_prefs         ┌───► for each song in songs.csv:                 Top K list
-{genre: "lofi",    │       score_song(prefs, song) ──► (score, why)  [(song, score, why),
- mood: "chill",    │                                                  (song, score, why),
- energy: 0.4}      │     ┌─ energy/valence/acoustic: (1-gap)² × weight   ...]
-                   │     ├─ mood match?  +0.20
-songs.csv ─────────┘     ├─ genre match? +0.10
- (load_songs →           └─ ÷ weights actually used  → 0..1
-  list of dicts)                      │
-                                      ▼
-                         sort all songs by score, high → low
-                                      ▼
-                         keep score ≥ 0.5  (else "no strong match" fallback)
-                                      ▼
-                         take top k  (~10% chance: swap last for a surprise pick)
+```mermaid
+flowchart TD
+    A["You describe the music"] --> B["Find matching songs"]
+    S["Song catalog + custom listening notes"] --> B
+    B --> C["Gemini explains the choices"]
+    C --> D["Check the answer and show results"]
+    D --> H["You review the recommendations"]
+    E["Evaluation checks song matches"] -.-> B
+    T["Tests check code and errors"] -.-> D
 ```
 
-*One song's trip.* Say the user wants lofi, chill, energy 0.4, and a song is lofi, chill, energy 0.35:
+More detail: [system diagram](diagrams/system.md).
 
-1. `load_songs` turns the CSV row into a dict with numeric fields as floats.
-2. Energy gap is 0.05, so closeness is (0.95)² ≈ 0.90, adding 0.35 × 0.90 = 0.315.
-3. Mood and genre both match exactly, adding 0.20 + 0.10 = 0.30.
-4. Valence and acousticness weren't given, so they are skipped. Weights used are 0.65, so the score is (0.315 + 0.30) / 0.65 ≈ 0.95.
-5. The song keeps its "why" strings with the score, and after every song is scored the list is sorted and cut to the top k.
+## Setup
 
-Every song is scored independently, and ranking is the only step that compares songs. The threshold and surprise pick only change what is shown, not how songs are scored.
-
-**Algorithm Recipe (final).**
-
-| Step | Rule | Weight |
-|---|---|---|
-| Energy | `(1 - gap)²`, gap = distance from target energy | 0.35 |
-| Valence | `(1 - gap)²` (only if the user gives a target) | 0.25 |
-| Mood | exact match = full weight, otherwise 0 | 0.20 |
-| Acousticness | `(1 - gap)²`, target 0.8 if the user likes acoustic, else 0.2 | 0.10 |
-| Genre | exact match = full weight, otherwise 0 | 0.10 |
-| Mood tags | share of the wanted tags the song has | 0.10 |
-| Instrumentalness, popularity, decade | `(1 - gap)²`, only if asked for | 0.05 each |
-| Language | exact match | 0.05 |
-| Normalize | `total / sum of weights actually used`, giving a 0 to 1 score | |
-| Rank | sort high to low, keep score ≥ 0.5, return top k, about 10% chance one slot is a surprise pick | |
-
-This differs from the common starting recipe (+2.0 genre, +1.0 mood, energy similarity). I use normalized 0 to 1 weights, put energy first, and weight mood above genre, because mood describes how a song feels while genre is a broad label.
-
-**Expected biases.**
-
-- **Energy dominates.** At 0.35 it is the biggest factor, so a song with the right energy but the wrong mood and genre can outrank a song that matches both. Great mood matches with a slightly different energy may be buried.
-- **Genre is under-weighted.** At 0.10 it barely moves the ranking, so a listener who really cares about genre (for example, only jazz) may still see other genres.
-- **Exact-match only for mood and genre.** "Indie pop" does not match "pop", and a typed word like "sleepy" matches nothing. Close labels get zero credit, which punishes users who describe taste in different words.
-- **Small, uneven catalog.** Only 18 songs, and lofi has 3 while most genres have 1. Lofi fans get more choice and the rest get a thin list that often falls back to "no strong match".
-- **Low-energy edge.** The lowest song energy is 0.22, so a user who asks for energy near 0 can never score a near-perfect match.
-- **Acousticness is a guess.** A yes/no preference becomes 0.8 or 0.2, which ignores users in the middle.
-- **Content-only.** With no data from other listeners, the system can't learn taste from behavior and tends to repeat what the features already say.
-
-**Real-world recommendations and my version.** Services like Spotify and Apple Music blend two ideas: collaborative filtering, which predicts your taste from what similar listeners play, skip and save, and content-based filtering, which matches the features of songs you already like (energy, mood, tempo and so on). My version is purely content-based, since I have no data from other users. It scores each song by how *close* it is to the user's targets, not by "more is better", so a calm lofi listener is never pushed toward high-energy tracks. Energy matters most, then valence, then a mood match, with acousticness and genre as smaller bonuses. Songs below a minimum score are dropped, the closest songs are shown with a "no strong match" note if nothing qualifies, and about 1 time in 10 a random surprise pick is added to help users discover something new.
-
----
-
-## Getting Started
-
-### Setup
-
-1. Create a virtual environment (optional but recommended):
+1. Use **Python 3.13** and open the project root, containing `requirements.txt`:
 
    ```bash
-   python -m venv .venv
-   source .venv/bin/activate      # Mac or Linux
-   .venv\Scripts\activate         # Windows
+   python3 -m venv .venv
+   source .venv/bin/activate
+   python -m pip install -r requirements.txt
+   ```
 
-2. Install dependencies
+   On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
+
+2. Copy `.env.example` to `.env`, keeping any existing `.env`. Add a
+   [Gemini API key](https://aistudio.google.com/apikey):
+
+   ```dotenv
+   GEMINI_API_KEY=your-api-key
+   GEMINI_MODEL=gemini-3.5-flash-lite
+   ```
+
+3. Start the app and enter a request. Type `quit` to exit:
+
+   ```bash
+   python -m src.main
+   ```
+
+Tested on macOS arm64 with Python 3.13.15. First run downloads model weights;
+Gemini needs internet access and available quota. Restart after code changes.
+Use `--demo` for the original recommender.
+
+## Sample interactions
+
+Reproduce these three live examples after setup:
 
 ```bash
-pip install -r requirements.txt
+printf 'calm songs\nenergetic rock for a workout\njazz music\nquit\n' | python -m src.main
 ```
 
-3. Run the app:
+Actual output excerpts are pasted below. Each request returns three songs;
+these excerpts show the first recommendation. Gemini wording can vary.
 
-```bash
-python -m src.main
-```
-
-### Scoring modes and options
-
-```bash
-python3 src/main.py --mode genre-first      # also: mood-first, energy-focused, balanced (default)
-python3 src/main.py --no-diversity          # turn off the diversity penalty
-python3 src/main.py --adversarial           # run the edge-case profiles
-```
-
-Each mode is a different weight table in `MODES` in `src/recommender.py`. Songs also have five extra features: popularity, release decade, mood tags, instrumentalness and language. A profile can ask for any of them. Features a profile leaves out are skipped. By default, a song loses 0.10 for each earlier pick by the same artist and 0.05 for each earlier pick in the same genre.
-
-### Running Tests
-
-Run the tests with:
-
-```bash
-pytest
-```
-
----
-
-## Sample Recommendation Output
-
-Profile: genre=pop, mood=happy, energy=0.80, valence=0.82, acousticness=0.20
-
-Generated with `python src/main.py` from the project root. Scores appear as match labels (see Scoring above). The last line of reasons for Gym Hero shows the diversity penalty.
+**1. Calm music**
 
 ```text
-High-Energy Pop
-+---+----------------+---------------+---------------+----------------------------------------------+
-| # | Title          | Artist        | Match         | Reasons                                      |
-+---+----------------+---------------+---------------+----------------------------------------------+
-| 1 | Sunrise City   | Neon Echo     | closest match | energy: closest match                        |
-|   |                |               |               | valence: closest match                       |
-|   |                |               |               | acousticness: closest match                  |
-|   |                |               |               | mood matches (happy)                         |
-|   |                |               |               | genre matches (pop)                          |
-+---+----------------+---------------+---------------+----------------------------------------------+
-| 2 | Rooftop Lights | Indigo Parade | close match   | energy: closer match                         |
-|   |                |               |               | valence: closest match                       |
-|   |                |               |               | acousticness: close match                    |
-|   |                |               |               | mood matches (happy)                         |
-+---+----------------+---------------+---------------+----------------------------------------------+
-| 3 | Gym Hero       | Max Pulse     | near match    | energy: close match                          |
-|   |                |               |               | valence: closer match                        |
-|   |                |               |               | acousticness: close match                    |
-|   |                |               |               | genre matches (pop)                          |
-|   |                |               |               | diversity penalty -0.05                      |
-+---+----------------+---------------+---------------+----------------------------------------------+
-| 4 | Concrete Crown | Verse Ledger  | near match    | energy: closest match                        |
-|   |                |               |               | valence: near match                          |
-|   |                |               |               | acousticness: close match                    |
-+---+----------------+---------------+---------------+----------------------------------------------+
-| 5 | Pulse Horizon  | Kaleido       | near match    | energy: close match                          |
-|   |                |               |               | valence: closest match                       |
-|   |                |               |               | acousticness: near match                     |
-+---+----------------+---------------+---------------+----------------------------------------------+
+Input: calm songs
+Output excerpt:
+1. Spacewalk Thoughts by Orbit Bloom (ID: 6, match score: 0.911)
+- Spacewalk Thoughts by Orbit Bloom (ID: 6): Spacewalk Thoughts by Orbit Bloom fits the calm request as it is an ambient song with a chill mood and calm mood tags. [Sources: data/songs.csv]
 ```
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
+**2. Workout music**
 
----
+```text
+Input: energetic rock for a workout
+Output excerpt:
+1. Storm Runner by Voltline (ID: 3, match score: 0.878)
+- Storm Runner by Voltline (ID: 3): Storm Runner by Voltline fits the request as an intense rock song with aggressive, driving, and powerful mood tags and a high energy of 0.91. [Sources: data/songs.csv]
+```
 
-## Experiments You Tried
+**3. Jazz**
 
-### Weight shift: double energy, halve genre
+```text
+Input: jazz music
+Output excerpt:
+1. Coffee Shop Stories by Slow Stereo (ID: 7, match score: 0.856)
+- Coffee Shop Stories by Slow Stereo (ID: 7): Coffee Shop Stories by Slow Stereo fits the request as it is explicitly a jazz song with a relaxed mood, cozy warm and nostalgic tags, and high acousticness. [Sources: data/songs.csv]
+```
 
-Changed `WEIGHTS` from energy 0.35 / genre 0.10 to energy 0.70 / genre 0.05 (valence, mood, acousticness unchanged). The weights no longer sum to 1 (they sum to 1.30), but `score_song` divides by the weights in use, so every score stayed within 0 to 1. I checked this for all 18 songs under all three profiles.
+[Full command, inputs, and all outputs](evidence/sample_interactions.txt).
+For jazz, the app also flagged two poor matches: the catalog has only one jazz song.
 
-What changed (top 5):
+## RAG enhancement: custom documents
 
-- **High-Energy Pop:** Sunrise City and Rooftop Lights stayed #1 and #2. Concrete Crown (hip hop) overtook Gym Hero (pop) for #3, because Gym Hero's genre match is worth half as much. Night Drive Loop replaced Pulse Horizon at #5.
-- **Chill Lofi:** same top 4 order. Coffee Shop Stories (jazz) replaced Morning Fog at #5.
-- **Deep Intense Rock:** Storm Runner stayed #1. Iron Tide (metal/angry) moved above the weaker matches, and Pulse Horizon (edm) entered the top 5.
+The app also reads [custom listening notes](data/listening_notes.md), an
+AI-assisted Markdown document linking three songs to suggested activities.
+Each note is joined to its song before embedding; selected notes are included
+in Gemini's prompt. Displayed explanations identify their source files.
 
-Verdict: **different, not clearly more accurate.** The top picks did not move, which suggests they are driven by several features agreeing. Slots 3 to 5 reshuffled toward songs with similar energy but the wrong genre, and scores in the tail rose (for example 0.57 to 0.65), so the system separates good matches from weak ones less sharply. I reverted to the original weights.
+For `music for a pomodoro session revising lecture notes`, an actual retrieval
+comparison produced:
 
-Use this section to document the experiments you ran. For example:
+| Sources searched | First result |
+|---|---|
+| Song catalog only | Moonlit Sonata Redux (ID: 12); Focus Flow was outside the top three |
+| Catalog + custom notes | Focus Flow (ID: 9), whose note suggests Pomodoro sessions and reviewing lecture notes |
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+Gemini's live response attributed the suggestion to the notes: "Editorial
+listening notes suggest it as a background choice for a Pomodoro session or
+revising lecture notes..."
 
----
+The extra source supplies activity context absent from the CSV. Reproduce the
+catalog-only baseline with `SongRAG(use_notes=False)`. The notes are editorial,
+not evidence of improved concentration. This example demonstrates
+the added context; it does not establish broad improvement.
 
-## Limitations and Risks
+## Design decisions
 
-- The catalog is tiny, with 18 songs.
-- Most genres and moods have only one song.
-- There is no "sad" mood, and no very quiet songs.
-- It does not understand lyrics or language.
-- Mood and genre must match exactly.
-- Mainstream, mid-energy tastes get the best matches.
+- **Hybrid retrieval:** embeddings support flexible wording; hand-weighted
+  metadata checks help enforce explicit preferences.
+- **Local catalog and reused index:** easy to inspect and fast after startup,
+  but limited in variety.
+- **Guardrails:** validate inputs and citations; keep matches visible if Gemini
+  fails. Citation checks cannot verify every generated claim.
 
-More detail is in the model card.
+`logs/rag.log` excludes request text and keys. Requests and selected records go
+to Google. Git ignores `.env`, logs, and generated reports.
 
----
+## Testing summary
 
-## Reflection
+```bash
+python -m pytest -q            # Automated tests; no API calls
+python -m src.main --evaluate  # Compare retrieval methods; no Gemini calls
+```
 
-Read the full [**Model Card**](model_card.md).
+**53 out of 53 automated tests passed.** These use fake embeddings and mocked
+Gemini responses to check code behavior without API calls. Representative checks:
 
-Simple scores can feel like real recommendations. Every song gets a grade, and the grades make a list. The weights decide whose taste the list fits. A tiny catalog also decides that. Users with unusual tastes get weaker matches, and nothing in the score tells them why.
+| Test case | Expected behavior | Result |
+|---|---|---|
+| `calm songs` with misleading embedding scores | Return low-energy songs; exclude Gym Hero from the top three | Pass |
+| Empty or overlong request | Reject before calling the embedding model | Pass |
+| Missing API key | Keep local matches and explain that a key is needed | Pass |
+| Generated song ID `999` | Withhold the invalid explanation | Pass |
+| Simulated Gemini quota error | Show a safe message; keep retrieved matches available | Pass |
+| API error containing a secret | Exclude the secret and request text from application logs | Pass |
+| Custom listening notes | Change retrieval, reach Gemini, and display source files | Pass |
+
+**Actual-model evaluation:** on eight labeled requests, hybrid retrieval placed
+a relevant song first **8/8 times**, versus **7/8** for embeddings alone. Across
+all returned songs, **11/24** were labeled relevant, versus **10/24** before.
+The remaining weak matches show the limits of the tiny catalog and always
+returning three songs. Full results: `reports/retrieval-evaluation.json`.
+
+**Lesson:** embedding-only retrieval initially put Gym Hero above calmer songs;
+mood and energy checks fixed that regression. Passing code tests does not prove
+recommendation accuracy or explanation factuality.
+
+
+
+## Reproducible execution evidence
+
+Run these commands from the project root after setup, with the virtual
+environment activated. Shell examples use macOS/Linux syntax. The linked text
+files contain actual commands, inputs, exit codes, and captured stdout;
+model-loading diagnostics on stderr are omitted. Timings, local paths, and
+Gemini wording may vary.
+
+**1. Live RAG run** — requires a valid Gemini key:
+
+```bash
+printf 'music for a pomodoro session revising lecture notes\nquit\n' | python -m src.main
+```
+
+Actual output excerpt:
+
+```text
+1. Focus Flow by LoRoom (ID: 9, match score: 0.376)
+- Focus Flow by LoRoom (ID: 9): Focus Flow by LoRoom is suggested for a Pomodoro session revising lecture notes due to its focused and calm tags, energy of 0.40, and instrumentalness of 0.88. [Sources: data/songs.csv, data/listening_notes.md]
+```
+
+[Full input/output transcript](evidence/sample_run.txt).
+
+**2. Guardrails** — blank input followed by a request with the key temporarily
+set to empty. This does not edit `.env` or call Gemini:
+
+```bash
+printf '\ncalm songs\nquit\n' | GEMINI_API_KEY='' python -m src.main
+```
+
+Actual output excerpts:
+
+```text
+What kind of song are you looking for? Please enter a music request, such as 'calm music for studying'.
+1. Spacewalk Thoughts by Orbit Bloom (ID: 6, match score: 0.911)
+Set GEMINI_API_KEY in .env to generate explanations.
+What kind of song are you looking for? Goodbye!
+```
+
+[Full guardrail transcript](evidence/guardrails.txt). Both checks completed
+without crashing; local retrieval remained available without a key.
+
+**3. Automated tests and retrieval evaluation** — no Gemini calls:
+
+```bash
+python -m pytest -q
+python -m src.main --evaluate
+```
+
+Actual output excerpts:
+
+```text
+53 passed in 6.17s
+
+Hand-labeled requests: 8
+Strategy      Precision@3   Recall@3    Hit@3    MRR@3
+metadata            0.375      0.646    0.875    0.750
+embedding           0.417      0.771    1.000    0.938
+hybrid              0.458      0.792    1.000    1.000
+```
+
+Full results: [automated test log](evidence/tests.txt) and
+[retrieval evaluation log](evidence/evaluation.txt). These establish tested code
+behavior and performance on the small labeled set, not universal AI accuracy.

@@ -8,6 +8,11 @@ __pycache__/
 env/
 venv/
 
+# Local API keys
+.env
+logs/
+reports/
+
 # OS files
 .DS_Store
 

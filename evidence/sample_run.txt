@@ -1,0 +1,25 @@
+Command:
+printf 'music for a pomodoro session revising lecture notes\nquit\n' | python -m src.main
+
+Stdin:
+music for a pomodoro session revising lecture notes
+quit
+
+Exit code: 0
+
+Stdout:
+Music recommender — describe a song or mood. Type 'quit' to exit.
+
+What kind of song are you looking for? Loading the song catalog and embedding model...
+
+Retrieved songs (ranked by semantic relevance and requested preferences):
+1. Focus Flow by LoRoom (ID: 9, match score: 0.376)
+2. Moonlit Sonata Redux by Elena Voss (ID: 12, match score: 0.352)
+3. Pulse Horizon by Kaleido (ID: 17, match score: 0.315)
+
+Generating explanation...
+- Focus Flow by LoRoom (ID: 9): Focus Flow by LoRoom is suggested for a Pomodoro session revising lecture notes due to its focused and calm tags, energy of 0.40, and instrumentalness of 0.88. [Sources: data/songs.csv, data/listening_notes.md]
+- Moonlit Sonata Redux by Elena Voss (ID: 12): Moonlit Sonata Redux by Elena Voss shares a calm mood, but lacks specific editorial notes for studying. [Sources: data/songs.csv]
+- Pulse Horizon by Kaleido (ID: 17): Pulse Horizon by Kaleido is a weak match because its euphoric mood and high energy of 0.95 do not fit a calm study session. [Sources: data/songs.csv]
+
+What kind of song are you looking for? Goodbye!

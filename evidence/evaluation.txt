@@ -1,0 +1,16 @@
+Command:
+python -m src.main --evaluate
+
+Exit code: 0
+
+Stdout:
+Evaluating retrieval locally; no Gemini calls are made.
+
+Hand-labeled requests: 8
+Strategy      Precision@3   Recall@3    Hit@3    MRR@3
+metadata            0.375      0.646    0.875    0.750
+embedding           0.417      0.771    1.000    0.938
+hybrid              0.458      0.792    1.000    1.000
+
+Full per-request results: /Users/swapnilkafle/CodePath/Final Project/applied-ai-system-project/reports/retrieval-evaluation.json
+This small diagnostic set measures retrieval; it does not measure explanation factuality.

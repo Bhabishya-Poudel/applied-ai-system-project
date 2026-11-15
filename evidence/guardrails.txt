@@ -1,0 +1,26 @@
+Command:
+printf '\ncalm songs\nquit\n' | GEMINI_API_KEY='' python -m src.main
+
+Stdin (first line is empty):
+
+calm songs
+quit
+
+Exit code: 0
+
+Stdout:
+Music recommender — describe a song or mood. Type 'quit' to exit.
+
+What kind of song are you looking for? Please enter a music request, such as 'calm music for studying'.
+
+What kind of song are you looking for? Loading the song catalog and embedding model...
+
+Retrieved songs (ranked by semantic relevance and requested preferences):
+1. Spacewalk Thoughts by Orbit Bloom (ID: 6, match score: 0.911)
+2. Moonlit Sonata Redux by Elena Voss (ID: 12, match score: 0.909)
+3. Morning Fog by Willow & Pine (ID: 18, match score: 0.890)
+
+Generating explanation...
+Set GEMINI_API_KEY in .env to generate explanations.
+
+What kind of song are you looking for? Goodbye!

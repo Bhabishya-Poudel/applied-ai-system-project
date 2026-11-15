@@ -1,0 +1,10 @@
+[
+  {"query": "calm songs", "relevant_ids": ["2", "4", "6", "9", "12", "18"]},
+  {"query": "energetic rock for a workout", "relevant_ids": ["3"]},
+  {"query": "jazz music", "relevant_ids": ["7"]},
+  {"query": "romantic music", "relevant_ids": ["15"]},
+  {"query": "angry metal for a workout", "relevant_ids": ["14"]},
+  {"query": "something to help me unwind after a difficult day", "relevant_ids": ["2", "4", "6", "9", "12", "18"]},
+  {"query": "something to keep me company while writing code late at night", "relevant_ids": ["2", "9"]},
+  {"query": "songs that feel like floating through outer space", "relevant_ids": ["6"]}
+]

@@ -1,0 +1,49 @@
+Command:
+printf 'calm songs\nenergetic rock for a workout\njazz music\nquit\n' | python -m src.main
+
+Stdin:
+calm songs
+energetic rock for a workout
+jazz music
+quit
+
+Exit code: 0
+
+Stdout:
+Music recommender — describe a song or mood. Type 'quit' to exit.
+
+What kind of song are you looking for? Loading the song catalog and embedding model...
+
+Retrieved songs (ranked by semantic relevance and requested preferences):
+1. Spacewalk Thoughts by Orbit Bloom (ID: 6, match score: 0.911)
+2. Moonlit Sonata Redux by Elena Voss (ID: 12, match score: 0.909)
+3. Morning Fog by Willow & Pine (ID: 18, match score: 0.890)
+
+Generating explanation...
+- Spacewalk Thoughts by Orbit Bloom (ID: 6): Spacewalk Thoughts by Orbit Bloom fits the calm request as it is an ambient song with a chill mood and calm mood tags. [Sources: data/songs.csv]
+- Moonlit Sonata Redux by Elena Voss (ID: 12): Moonlit Sonata Redux by Elena Voss fits the request because it includes calm in its mood tags, though it has a melancholic mood. [Sources: data/songs.csv]
+- Morning Fog by Willow & Pine (ID: 18): Morning Fog by Willow & Pine is a weak match as it has a peaceful and warm mood rather than an explicitly calm tag. [Sources: data/songs.csv]
+
+What kind of song are you looking for? 
+Retrieved songs (ranked by semantic relevance and requested preferences):
+1. Storm Runner by Voltline (ID: 3, match score: 0.878)
+2. Gym Hero by Max Pulse (ID: 5, match score: 0.624)
+3. Sunrise City by Neon Echo (ID: 1, match score: 0.602)
+
+Generating explanation...
+- Storm Runner by Voltline (ID: 3): Storm Runner by Voltline fits the request as an intense rock song with aggressive, driving, and powerful mood tags and a high energy of 0.91. [Sources: data/songs.csv]
+- Gym Hero by Max Pulse (ID: 5): Gym Hero by Max Pulse fits well with its intense mood, aggressive, motivating, and powerful tags, and very high energy of 0.93, though it is a pop song rather than rock. [Sources: data/songs.csv]
+- Sunrise City by Neon Echo (ID: 1): Sunrise City by Neon Echo has a high energy of 0.82, but it is a pop song with a happy mood and upbeat, sunny, and danceable tags, making it a weaker match for the requested rock genre. [Sources: data/songs.csv]
+
+What kind of song are you looking for? 
+Retrieved songs (ranked by semantic relevance and requested preferences):
+1. Coffee Shop Stories by Slow Stereo (ID: 7, match score: 0.856)
+2. Moonlit Sonata Redux by Elena Voss (ID: 12, match score: 0.382)
+3. Iron Tide by Black Anvil (ID: 14, match score: 0.346)
+
+Generating explanation...
+- Coffee Shop Stories by Slow Stereo (ID: 7): Coffee Shop Stories by Slow Stereo fits the request as it is explicitly a jazz song with a relaxed mood, cozy warm and nostalgic tags, and high acousticness. [Sources: data/songs.csv]
+- Moonlit Sonata Redux by Elena Voss (ID: 12): Moonlit Sonata Redux by Elena Voss is a weak match because it is a classical song rather than jazz, though it shares a calm mood. [Sources: data/songs.csv]
+- Iron Tide by Black Anvil (ID: 14): Iron Tide by Black Anvil is a mismatch for the user's request as it is an aggressive metal song with high energy. [Sources: data/songs.csv]
+
+What kind of song are you looking for? Goodbye!

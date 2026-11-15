@@ -1,18 +1,15 @@
 """
-Command line runner for the Music Recommender Simulation.
-
-This file helps you quickly run and test your recommender.
-
-You will implement the functions in recommender.py:
-- load_songs
-- score_song
-- recommend_songs
+Interactive song recommendations, with the original scoring examples via --demo.
 """
 
 import argparse
 import textwrap
+from pathlib import Path
 
-from recommender import MODES, load_songs, match_label, recommend_songs
+if __package__:
+    from .recommender import MODES, load_songs, match_label, recommend_songs
+else:
+    from recommender import MODES, load_songs, match_label, recommend_songs
 
 
 PROFILES = {
@@ -112,20 +109,42 @@ def print_recommendations(name: str, recommendations: list) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Music Recommender Simulation")
-    parser.add_argument("--mode", choices=MODES, default="balanced", help="scoring mode")
+    parser.add_argument("--demo", action="store_true", help="run the original scoring examples")
+    parser.add_argument("--evaluate", action="store_true", help="compare retrieval quality without calling Gemini")
+    parser.add_argument("--mode", choices=MODES, help="run scoring examples with this mode (default: balanced)")
     parser.add_argument("--adversarial", action="store_true", help="run the edge-case profiles")
     parser.add_argument("--no-diversity", action="store_true", help="turn off the diversity penalty")
     args = parser.parse_args()
 
-    songs = load_songs("data/songs.csv")
+    if args.evaluate:
+        if args.demo or args.adversarial or args.no_diversity or args.mode:
+            parser.error("--evaluate cannot be combined with scoring demo options")
+        if __package__:
+            from .evaluate import main as evaluation_main
+        else:
+            # Allow the documented direct-file entry point as well as -m.
+            import sys
+            sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+            from src.evaluate import main as evaluation_main
+        return evaluation_main()
+
+    if not (args.demo or args.adversarial or args.no_diversity or args.mode):
+        if __package__:
+            from .embeddings import main as rag_main
+        else:
+            from embeddings import main as rag_main
+        return rag_main()
+
+    songs = load_songs(str(Path(__file__).resolve().parent.parent / "data" / "songs.csv"))
     profiles = ADVERSARIAL_PROFILES if args.adversarial else PROFILES
-    print(f"Scoring mode: {args.mode}")
+    mode = args.mode or "balanced"
+    print(f"Scoring mode: {mode}")
     for name, user_prefs in profiles.items():
         recommendations = recommend_songs(
-            user_prefs, songs, k=5, mode=args.mode, diversity=not args.no_diversity
+            user_prefs, songs, k=5, mode=mode, diversity=not args.no_diversity
         )
         print_recommendations(name, recommendations)
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
