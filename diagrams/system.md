@@ -2,23 +2,23 @@
 
 ```mermaid
 flowchart TD
-    A["You describe the music"] --> B["Find matching songs"]
+    A["Music request"] --> B["Song retrieval"]
     S["Song catalog + custom listening notes"] --> B
-    B --> C["Gemini explains the choices"]
-    C --> D["Check the answer and show results"]
-    D --> H["You review the recommendations"]
-    E["Evaluation checks song matches"] -.-> B
-    T["Tests check code and errors"] -.-> D
+    B --> C["Gemini explanation"]
+    C --> D["Answer checks and results"]
+    D --> H["Human review"]
+    E["Song-match evaluation"] -.-> B
+    T["Code and error checks"] -.-> D
 ```
 
-- **Find songs:** compare the request with the catalog using embeddings and
+- **Song retrieval:** the request is compared with the catalog using embeddings and
   mood, genre, and energy preferences. Custom listening notes enrich the indexed
   song descriptions.
-- **Explain and check:** send the request and three selected records to Gemini;
-  include their custom notes and validate the answer's format and cited song
-  IDs before showing explanations with source filenames.
+- **Explanation and validation:** Gemini receives the request, three selected
+  records, and their custom notes. Answer format and cited song IDs are checked
+  before explanations appear with source filenames.
   Retrieved songs remain visible if generation fails.
 - **Automated checks:** `pytest` checks code behavior; `--evaluate` compares
   retrieval results with manually labeled song IDs.
-- **Human review:** check whether recommendations fit and explanations agree
-  with the catalog. This is a manual review, not an approval step in the app.
+- **Human review:** relevance and agreement with the catalog can be assessed
+  manually. The app does not include an approval step.

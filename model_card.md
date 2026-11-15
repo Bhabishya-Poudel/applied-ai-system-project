@@ -64,10 +64,11 @@ A passing test suite was useful evidence, but not proof of a good experience.
 
 ### How I collaborated with AI
 
-I used Codex to help refactor, test, explain, and document the application. I
-questioned the Gym Hero result, asked what embeddings contributed, and requested
-simpler explanations and documentation. I used outputs to challenge design
-choices rather than treating generated code as automatically correct.
+I developed the project with AI assistance for implementation options, code
+drafts, test ideas, and explanations. I directed the work by questioning the
+Gym Hero result, examining what embeddings contributed, and choosing simpler
+documentation. I assessed suggestions against recorded outputs and tests
+rather than assuming that a code draft was correct.
 
 ### One suggestion I accepted
 
@@ -77,12 +78,11 @@ which songs are available.
 
 ### Suggestions I rejected or revised
 
-I challenged the embedding-only ranking after the calm-song failure. We added
-mood and energy checks while keeping semantic retrieval for flexible wording.
-I also asked for a shorter README and a simpler diagram because the original
-documentation obscured the main flow with too much detail.
+I challenged the embedding-only ranking after the calm-song failure. I adopted
+mood and energy checks alongside semantic retrieval with AI assistance. I also
+revised the README and diagram to make the main flow easier to understand.
 
-### Where AI overengineered, overexplained, or overcoded
+### Complexity I reconsidered during AI-assisted development
 
 - **Ranking:** fixing one mismatch grew into synonym groups, negation rules,
   energy targets, and several weights. The rules help, but duplicate parts of
@@ -98,7 +98,7 @@ documentation obscured the main flow with too much detail.
   heavier than the current interface needs.
 - **Communication:** repeated scoring explanations, long tables, duplicated
   setup instructions, and a busy diagram made a beginner project harder to
-  follow. We shortened the documentation and used plain-language diagram labels.
+  follow. I simplified the documentation and chose plain-language diagram labels.
 
 The documentation was simplified; the additional code and dependencies remain.
 My next revision would simplify shared scoring logic, review dependencies, and

@@ -1,11 +1,11 @@
 # Music Recommender with RAG
 
-Describe the music you want and receive three recommendations with AI-generated
-explanations. Search a small catalog in everyday language and see why songs fit.
+This command-line recommender accepts everyday-language music requests and
+returns three catalog matches with AI-generated explanations grounded in song data.
 
 ## Original project
 
-This extends [Music Recommender Simulation](https://github.com/Bhabishya-Poudel/ai110-module3show-musicrecommendersimulation-starter)
+I extended [Music Recommender Simulation](https://github.com/Bhabishya-Poudel/ai110-module3show-musicrecommendersimulation-starter)
 from **CodePath Module 3, Week 6**. The original project matched a listener's genre,
 mood, energy, and acoustic preferences to a local song catalog. It used weighted
 scores to return ranked songs with reasons.
@@ -18,20 +18,21 @@ the answer's format and song IDs.
 
 ```mermaid
 flowchart TD
-    A["You describe the music"] --> B["Find matching songs"]
+    A["Music request"] --> B["Song retrieval"]
     S["Song catalog + custom listening notes"] --> B
-    B --> C["Gemini explains the choices"]
-    C --> D["Check the answer and show results"]
-    D --> H["You review the recommendations"]
-    E["Evaluation checks song matches"] -.-> B
-    T["Tests check code and errors"] -.-> D
+    B --> C["Gemini explanation"]
+    C --> D["Answer checks and results"]
+    D --> H["Human review"]
+    E["Song-match evaluation"] -.-> B
+    T["Code and error checks"] -.-> D
 ```
 
 More detail: [system diagram](diagrams/system.md).
 
 ## Setup
 
-1. Use **Python 3.13** and open the project root, containing `requirements.txt`:
+1. **Environment:** Python 3.13, with commands executed from the project root
+   containing `requirements.txt`:
 
    ```bash
    python3 -m venv .venv
@@ -39,35 +40,37 @@ More detail: [system diagram](diagrams/system.md).
    python -m pip install -r requirements.txt
    ```
 
-   On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1`.
+   Windows PowerShell activation: `.venv\Scripts\Activate.ps1`.
 
-2. Copy `.env.example` to `.env`, keeping any existing `.env`. Add a
-   [Gemini API key](https://aistudio.google.com/apikey):
+2. **Credentials:** a local `.env` file based on `.env.example`, containing a
+   [Gemini API key](https://aistudio.google.com/apikey). Existing `.env` values
+   can be retained:
 
    ```dotenv
-   GEMINI_API_KEY=your-api-key
+   GEMINI_API_KEY=PASTE_API_KEY_HERE
    GEMINI_MODEL=gemini-3.5-flash-lite
    ```
 
-3. Start the app and enter a request. Type `quit` to exit:
+3. **Execution:** the following command starts the interactive prompt; `quit`
+   ends the session:
 
    ```bash
    python -m src.main
    ```
 
 Tested on macOS arm64 with Python 3.13.15. First run downloads model weights;
-Gemini needs internet access and available quota. Restart after code changes.
-Use `--demo` for the original recommender.
+Gemini needs internet access and available quota. Code changes take effect after
+restarting the app. The `--demo` option runs the original recommender.
 
 ## Sample interactions
 
-Reproduce these three live examples after setup:
+Command used for the three recorded examples:
 
 ```bash
 printf 'calm songs\nenergetic rock for a workout\njazz music\nquit\n' | python -m src.main
 ```
 
-Actual output excerpts are pasted below. Each request returns three songs;
+Recorded output excerpts follow. Each request returns three songs;
 these excerpts show the first recommendation. Gemini wording can vary.
 
 **1. Calm music**
@@ -119,8 +122,8 @@ Gemini's live response attributed the suggestion to the notes: "Editorial
 listening notes suggest it as a background choice for a Pomodoro session or
 revising lecture notes..."
 
-The extra source supplies activity context absent from the CSV. Reproduce the
-catalog-only baseline with `SongRAG(use_notes=False)`. The notes are editorial,
+The extra source supplies activity context absent from the CSV. The
+catalog-only baseline uses `SongRAG(use_notes=False)`. The notes are editorial,
 not evidence of improved concentration. This example demonstrates
 the added context; it does not establish broad improvement.
 
@@ -170,8 +173,8 @@ recommendation accuracy or explanation factuality.
 
 ## Reproducible execution evidence
 
-Run these commands from the project root after setup, with the virtual
-environment activated. Shell examples use macOS/Linux syntax. The linked text
+These executions use the project root and an activated virtual environment.
+Shell examples use macOS/Linux syntax. The linked text
 files contain actual commands, inputs, exit codes, and captured stdout;
 model-loading diagnostics on stderr are omitted. Timings, local paths, and
 Gemini wording may vary.
